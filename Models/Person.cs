@@ -1,6 +1,6 @@
 ﻿namespace Gym_Inventory_Management_System.Models;
 
-public class  Person
+public abstract class Person
 {
     public int Id { get; set; }
     public required string Name { get; set; }

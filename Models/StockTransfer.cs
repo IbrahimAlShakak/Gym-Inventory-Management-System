@@ -9,4 +9,10 @@ public class StockTransfer
     public int Quantity { get; set; }
     public DateTime TransferDate { get; set; } = DateTime.UtcNow;
     public int UserId { get; set; }
+
+    public User User { get; set; }  
+    public Item Item { get; set; }
+
+    public Location FromLocation { get; set; }
+    public Location ToLocation { get; set; }
 }

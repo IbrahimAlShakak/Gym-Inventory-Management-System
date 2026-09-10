@@ -12,4 +12,8 @@ public class StockMovement
     public DateOnly MovementDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
     public int UserId { get; set; }
     public required string Notes { get; set; }
+
+    public Item Item { get; set; } 
+    public Location Location { get; set; }
+    public User User { get; set; }
 }
