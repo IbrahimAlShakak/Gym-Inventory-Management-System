@@ -1,41 +1,57 @@
 using Gym_Inventory_Management_System.Context;
 using Gym_Inventory_Management_System.Data;
+using Gym_Inventory_Management_System.Services;
+using Gym_Inventory_Management_System.IServices;
 using Microsoft.EntityFrameworkCore;
+using Gym_Inventory_Management_System.IServicesl;
 
-namespace Gym_Inventory_Management_System
+
+namespace Gym_Inventory_Management_System;
+
+public class Program
 {
-    public class Program
+    public static void Main(string[] args)
     {
-        public static void Main(string[] args)
+        var builder = WebApplication.CreateBuilder(args);
+
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("Connection string"
+            + "'DefaultConnection' not found.");
+
+        builder.Services.AddDbContext<AppDbContext>(options =>
+            options.UseSqlServer(connectionString));
+
+        builder.Services.AddScoped<ICategoriesService, CategoriesService>();
+        builder.Services.AddScoped<ILocationsService, LocationsService>();
+        builder.Services.AddScoped<IEquipmentService, EquipmentService>();
+        builder.Services.AddScoped<IConsumablesService, ConsumablesService>();
+
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+
+
+        builder.Services.AddControllers().AddJsonOptions(options =>
         {
-            var builder = WebApplication.CreateBuilder(args);
+            options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        });
 
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-                ?? throw new InvalidOperationException("Connection string"
-                + "'DefaultConnection' not found.");
+        var app = builder.Build();
 
-            builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(connectionString));
-
-            builder.Services.AddControllers();
-
-            var app = builder.Build();
-
-            using (var scope = app.Services.CreateScope())
-            {
-                var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                DbSeeder.Seed(context);
-            }
-            // Configure the HTTP request pipeline.
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthorization();
-
-
-            app.MapControllers();
-
-            app.Run();
+        // Configure the HTTP request pipeline.
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
         }
+
+        app.UseHttpsRedirection();
+
+        app.UseAuthorization();
+
+
+        app.MapControllers();
+
+        app.Run();
     }
 }
+

@@ -1,0 +1,80 @@
+﻿using Gym_Inventory_Management_System.Context;
+using Gym_Inventory_Management_System.DTOs;
+using Gym_Inventory_Management_System.IServices;
+using Gym_Inventory_Management_System.Mappers;
+using Microsoft.EntityFrameworkCore;
+
+namespace Gym_Inventory_Management_System.Services;
+
+public class EquipmentService : IEquipmentService
+{
+    private readonly AppDbContext _context;
+    public EquipmentService(AppDbContext context)
+    {
+        _context = context; 
+    }
+
+    public async Task<List<EquipmentResponseDTO>> GetAllEquipmentAsync()
+    {
+        var equipmentList = await _context.Equipment.AsNoTracking().Include(e => e.Category).ToListAsync();
+        return equipmentList.Select(e => EquipmentMapper.ToDto(e)).ToList();
+    }
+
+    public async Task<EquipmentResponseDTO?> GetEquipmentByIdAsync(int id)
+    {
+        var equipment = await _context.Equipment.AsNoTracking().Include(e => e.Category).FirstOrDefaultAsync(e => e.Id == id);
+        return equipment != null ? EquipmentMapper.ToDto(equipment) : null;
+    }
+    
+
+    public async Task<EquipmentResponseDTO?> CreateEquipmentAsync(EquipmentCreateRequestDTO dto)
+    {
+       var isCategoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
+        if (!isCategoryExists)
+        {
+            return null;
+        }
+        var equipment = EquipmentMapper.ToEntity(dto);
+        _context.Equipment.Add(equipment);
+        await _context.SaveChangesAsync();
+        return EquipmentMapper.ToDto(equipment);
+    }
+
+    public async Task<EquipmentResponseDTO?> UpdateEquipmentAsync(int id, EquipmentUpdateRequestDTO dto)
+    {
+        var equipment = await _context.Equipment.FindAsync(id);
+        if (equipment != null)
+        {
+            var isCategoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
+            if (!isCategoryExists)
+            {
+                return null;
+            }
+            equipment.SKU = dto.SKU;
+            equipment.Name = dto.Name;
+            equipment.CategoryId = dto.CategoryId;
+            equipment.SerialNumber = dto.SerialNumber;
+            equipment.PurchaseDate = dto.PurchaseDate;
+            equipment.WarrantyExpiry = dto.WarrantyExpiry;
+            equipment.MaintenanceStatus = dto.MaintenanceStatus;
+            equipment.Condition = dto.Condition;
+            await _context.SaveChangesAsync();
+            return EquipmentMapper.ToDto(equipment);
+
+        }
+        return null;
+    }
+
+    public async Task<bool> DeleteEquipmentAsync(int id)
+    {
+        var equipment = await _context.Equipment.FindAsync(id);
+        if (equipment != null)
+        {
+            _context.Equipment.Remove(equipment);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        return false;
+    }
+
+}
