@@ -25,6 +25,7 @@ public class Program
         builder.Services.AddScoped<ILocationsService, LocationsService>();
         builder.Services.AddScoped<IEquipmentService, EquipmentService>();
         builder.Services.AddScoped<IConsumablesService, ConsumablesService>();
+        builder.Services.AddScoped<IStockMovementsService, StockMovementsService>();
 
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();

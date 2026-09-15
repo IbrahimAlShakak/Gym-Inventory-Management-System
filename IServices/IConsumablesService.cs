@@ -9,5 +9,6 @@ public interface IConsumablesService
     public Task<ConsumableResponseDTO?> CreateConsumableAsync(ConsumableCreateRequestDTO dto);
     public Task<ConsumableResponseDTO?> UpdateConsumableAsync(int id, ConsumableUpdateRequestDTO dto);
     public Task<bool> DeleteConsumableAsync(int id);
+    public Task<List<ConsumableResponseDTO>> GetLowStockConsumablesAsync();
 }
 

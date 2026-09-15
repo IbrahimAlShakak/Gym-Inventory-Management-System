@@ -77,5 +77,13 @@ namespace Gym_Inventory_Management_System.Controllers
             return NoContent();
         }
 
+
+        [HttpGet("low-stock")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<List<ConsumableResponseDTO>>> GetLowStockConsumablesAsync()
+        {
+            return Ok(await _consumableService.GetLowStockConsumablesAsync());
+        }
+
     }
 }

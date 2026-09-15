@@ -72,4 +72,13 @@ public class ConsumablesService : IConsumablesService
         }
         return false;
     }
+
+    public async Task<List<ConsumableResponseDTO>> GetLowStockConsumablesAsync()
+    {
+        var lowStockConsumables = await _context.Consumables.AsNoTracking()
+            .Include(c => c.StockLevels)
+            .Where(c => c.StockLevels.Any(s => s.Quantity <= c.ReorderThreshold))
+            .ToListAsync();
+        return lowStockConsumables.Select(c => ConsumableMapper.ToDto(c)).ToList();
+    }
 }

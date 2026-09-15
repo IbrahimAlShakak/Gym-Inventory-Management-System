@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<StockLevel> StockLevels { get; set; }
     public DbSet<StockMovement> StockMovements { get; set; }
     public DbSet<StockTransfer> StockTransfers { get; set; }
+    public DbSet<Item> Items { get; set; }
 
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
