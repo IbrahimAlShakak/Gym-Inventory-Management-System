@@ -1,10 +1,8 @@
 using Gym_Inventory_Management_System.Context;
-using Gym_Inventory_Management_System.Data;
 using Gym_Inventory_Management_System.Services;
 using Gym_Inventory_Management_System.IServices;
 using Microsoft.EntityFrameworkCore;
 using Gym_Inventory_Management_System.IServicesl;
-
 
 namespace Gym_Inventory_Management_System;
 
@@ -26,6 +24,8 @@ public class Program
         builder.Services.AddScoped<IEquipmentService, EquipmentService>();
         builder.Services.AddScoped<IConsumablesService, ConsumablesService>();
         builder.Services.AddScoped<IStockMovementsService, StockMovementsService>();
+        builder.Services.AddScoped<IStockTransfersService, StockTransfersService>();
+        builder.Services.AddScoped<IStockLevelHelperService, StockLevelHelperService>();
 
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -48,7 +48,6 @@ public class Program
         app.UseHttpsRedirection();
 
         app.UseAuthorization();
-
 
         app.MapControllers();
 

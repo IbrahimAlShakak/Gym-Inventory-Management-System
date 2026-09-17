@@ -10,13 +10,15 @@ namespace Gym_Inventory_Management_System.Services;
 public class StockMovementsService : IStockMovementsService
 {
     private readonly AppDbContext _context;
-    public StockMovementsService(AppDbContext context)
+    private readonly IStockLevelHelperService _stockLevelHelperService;
+    public StockMovementsService(AppDbContext context, IStockLevelHelperService stockLevelHelperService)
     {
         _context = context;
+        _stockLevelHelperService = stockLevelHelperService;
     }
     public async Task<List<StockMovementResponseDTO>> GetAllStockMovementsAsync()
     {
-        var stockMovements = await _context.StockMovements.AsNoTracking().ToListAsync(); 
+        var stockMovements = await _context.StockMovements.AsNoTracking().ToListAsync();
         return stockMovements.Select(s => StockMovementMapper.ToDto(s)).ToList();
     }
     public async Task<StockMovementResponseDTO?> GetStockMovementByIdAsync(int id)
@@ -26,23 +28,11 @@ public class StockMovementsService : IStockMovementsService
     }
     public async Task<StockMovementResponseDTO?> CreateStockMovementAsync(StockMovementCreateDTO dto)
     {
-        var location = await _context.Locations.FirstOrDefaultAsync(l => l.Id == dto.LocationId);
-        if (location == null)
+        var stockLevel = await _stockLevelHelperService.GetOrCreateStockLevelAsync(dto.ItemId, dto.LocationId);
+
+        if (stockLevel == null)
         {
             return null;
-        }
-
-        var item = await _context.Items.FirstOrDefaultAsync(i => i.Id == dto.ItemId);
-        if (item == null)
-        {
-            return null;
-        }
-
-        var stockLevel = await _context.StockLevels.FirstOrDefaultAsync(sl => sl.ItemId == dto.ItemId && sl.LocationId == dto.LocationId);
-        if( stockLevel == null)
-        {
-            stockLevel = new StockLevel{ ItemId = dto.ItemId, LocationId = dto.LocationId, Quantity = 0};
-            _context.StockLevels.Add(stockLevel);
         }
 
         var signedQuantity = dto.Type switch
@@ -53,6 +43,7 @@ public class StockMovementsService : IStockMovementsService
             MovementType.Adjusted => dto.Quantity,
             _ => throw new ArgumentOutOfRangeException()
         };
+
         stockLevel.Quantity += signedQuantity;
         var stockMovement = StockMovementMapper.ToEntity(dto);
         _context.StockMovements.Add(stockMovement);
@@ -62,17 +53,18 @@ public class StockMovementsService : IStockMovementsService
     }
     public async Task<List<StockLevelResponseDTO>> GetItemStockLevelsByItemIdAsync(int itemId)
     {
-       var stockLevels = await _context.StockLevels.AsNoTracking().Where(sl => sl.ItemId == itemId).ToListAsync();
+        var stockLevels = await _context.StockLevels.AsNoTracking().Where(sl => sl.ItemId == itemId).ToListAsync();
         return stockLevels.Select(sl => StockLevelMapper.ToDto(sl)).ToList();
     }
     public async Task<List<StockLevelResponseDTO>> GetStockLevelsByLocationIdAsync(int locationId)
     {
-       var stockLevels = await _context.StockLevels.AsNoTracking().Where(sl => sl.LocationId == locationId).ToListAsync();
+        var stockLevels = await _context.StockLevels.AsNoTracking().Where(sl => sl.LocationId == locationId).ToListAsync();
         return stockLevels.Select(sl => StockLevelMapper.ToDto(sl)).ToList();
     }
     public async Task<List<StockLevelResponseDTO>> GetItemStockLevelsAsync(int itemId, int locationId)
     {
-       var stockLevels = await _context.StockLevels.AsNoTracking().Where(sl => sl.ItemId == itemId && sl.LocationId == locationId).ToListAsync();
+        var stockLevels = await _context.StockLevels.AsNoTracking().Where(sl => sl.ItemId == itemId && sl.LocationId == locationId).ToListAsync();
         return stockLevels.Select(sl => StockLevelMapper.ToDto(sl)).ToList();
     }
 }
+
