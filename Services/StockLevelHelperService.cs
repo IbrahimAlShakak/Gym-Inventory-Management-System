@@ -1,4 +1,5 @@
 ﻿using Gym_Inventory_Management_System.Context;
+using Gym_Inventory_Management_System.Exceptions;
 using Gym_Inventory_Management_System.IServices;
 using Gym_Inventory_Management_System.Models;
 using Microsoft.EntityFrameworkCore;
@@ -12,18 +13,18 @@ public class StockLevelHelperService : IStockLevelHelperService
     {
         _context = context;
     }
-    public async Task<StockLevel?> GetOrCreateStockLevelAsync(int itemId, int locationId)
+    public async Task<StockLevel> GetOrCreateStockLevelAsync(int itemId, int locationId)
     {
         var location = await _context.Locations.FirstOrDefaultAsync(l => l.Id == locationId);
         if (location == null)
         {
-            return null;
+            throw new NotFoundException($"Location not found with the specified ID = {locationId}");
         }
 
         var item = await _context.Items.FirstOrDefaultAsync(i => i.Id == itemId);
         if (item == null)
         {
-            return null;
+            throw new NotFoundException($"Item not found with the specified ID = {itemId}");
         }
 
         var stockLevel = await _context.StockLevels

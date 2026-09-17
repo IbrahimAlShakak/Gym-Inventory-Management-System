@@ -1,5 +1,6 @@
 ﻿using Gym_Inventory_Management_System.Context;
 using Gym_Inventory_Management_System.DTOs;
+using Gym_Inventory_Management_System.Exceptions;
 using Gym_Inventory_Management_System.IServicesl;
 using Gym_Inventory_Management_System.Mappers;
 using Microsoft.EntityFrameworkCore;
@@ -17,21 +18,29 @@ public class ConsumablesService : IConsumablesService
     public async Task<List<ConsumableResponseDTO>> GetAllConsumablesAsync()
     {
         var consumablesList = await _context.Consumables.AsNoTracking().Include(c => c.Category).ToListAsync();
+        if (consumablesList == null || !consumablesList.Any())
+        {
+            throw new NotFoundException("No consumables found in the database.");
+        }
         return consumablesList.Select(c => ConsumableMapper.ToDto(c)).ToList();
     }
 
-    public async Task<ConsumableResponseDTO?> GetConsumableByIdAsync(int id)
+    public async Task<ConsumableResponseDTO> GetConsumableByIdAsync(int id)
     {
         var consumable = await _context.Consumables.AsNoTracking().Include(c => c.Category).FirstOrDefaultAsync(c => c.Id == id);
-        return consumable != null ? ConsumableMapper.ToDto(consumable) : null;
+        if (consumable == null)
+        {
+            throw new NotFoundException("Consumable not found.");
+        }
+        return ConsumableMapper.ToDto(consumable);
     }
 
-    public async Task<ConsumableResponseDTO?> CreateConsumableAsync(ConsumableCreateRequestDTO dto)
+    public async Task<ConsumableResponseDTO> CreateConsumableAsync(ConsumableCreateRequestDTO dto)
     {
         var isCategoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
         if (!isCategoryExists)
         {
-            return null;
+            throw new NotFoundException("Category not found.");
         }
         var consumable = ConsumableMapper.ToEntity(dto);
         _context.Consumables.Add(consumable);
@@ -39,7 +48,7 @@ public class ConsumablesService : IConsumablesService
         return ConsumableMapper.ToDto(consumable);
     }
 
-    public async Task<ConsumableResponseDTO?> UpdateConsumableAsync(int id, ConsumableUpdateRequestDTO dto)
+    public async Task<ConsumableResponseDTO> UpdateConsumableAsync(int id, ConsumableUpdateRequestDTO dto)
     {
         var consumable = await _context.Consumables.FindAsync(id);
         if (consumable != null)
@@ -47,7 +56,7 @@ public class ConsumablesService : IConsumablesService
             var isCategoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
             if (!isCategoryExists)
             {
-                return null;
+                throw new NotFoundException("Category not found.");
             }
             consumable.SKU = dto.SKU;
             consumable.Name = dto.Name;
@@ -58,7 +67,7 @@ public class ConsumablesService : IConsumablesService
             await _context.SaveChangesAsync();
             return ConsumableMapper.ToDto(consumable);
         }
-        return null;
+        throw new NotFoundException($"Consumable not found with the specified ID = {id}");
     }
 
     public async Task<bool> DeleteConsumableAsync(int id)
@@ -70,7 +79,7 @@ public class ConsumablesService : IConsumablesService
             await _context.SaveChangesAsync();
             return true;
         }
-        return false;
+        throw new NotFoundException($"Consumable not found with the specified ID = {id}");
     }
 
     public async Task<List<ConsumableResponseDTO>> GetLowStockConsumablesAsync()

@@ -4,6 +4,6 @@ namespace Gym_Inventory_Management_System.IServices;
 
 public interface IStockLevelHelperService
 {
-    public Task<StockLevel?> GetOrCreateStockLevelAsync(int itemId, int locationId);
+    public Task<StockLevel> GetOrCreateStockLevelAsync(int itemId, int locationId);
 }
 

@@ -25,6 +25,15 @@ A backend-focused inventory and warehouse management system for a gym.
 - `AppDbContext` with EF Core configuration: relationships, TPT mapping, enum-to-string conversions
 - Initial database migration applied
 - Database seeder with sample data (10 rows across core tables) for local testing
+- CRUD API endpoints (Controllers + Services + DTOs + Mappers) for:
+  - Categories, Locations, Consumables, Equipment
+  - Stock Movements — recording a movement updates the matching `StockLevel` transactionally
+  - Stock Transfers — moving stock between two locations, updating both `StockLevel` rows atomically, with an insufficient-stock check
+  - Read endpoints for current stock levels (by item, by location, by item+location) and low-stock consumables
+- Shared `StockLevelHelperService` (get-or-create pattern) used by both Stock Movements and Stock Transfers
+- Global exception-handling middleware: custom exceptions (`NotFoundException`, `InvalidOperationBusinessException`) are caught centrally and mapped to consistent HTTP responses (404 / 400), instead of scattered null-checks
+- Swagger (Swashbuckle) for interactive API documentation and manual testing
+- Enums serialized as strings over the API (not raw integers), matching how they're stored in the database
 
 ## Getting Started
 
@@ -58,3 +67,4 @@ Some of the key modeling decisions behind this project:
 - **StockLevel vs. StockMovement**: `StockMovement` is the append-only source of truth (what happened, when, by whom); `StockLevel` is a cached current-quantity snapshot kept in sync with it. This mirrors how ledger/accounting systems track state.
 - **Multi-location support** is built in from the start — every stock quantity and movement is tied to a specific `Location`.
 - Enums (`MovementType`, `MaintenanceStatus`, `UserRole`) are stored as strings in the database (not raw integers) for readability and safety against reordering.
+- **Error handling** is centralized: services throw specific exceptions (e.g. `NotFoundException`) instead of returning `null` for every failure case, and a single middleware translates them into consistent HTTP responses — avoiding repeated null-checks and mismatched status codes across controllers.

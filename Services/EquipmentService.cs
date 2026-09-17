@@ -1,5 +1,6 @@
 ﻿using Gym_Inventory_Management_System.Context;
 using Gym_Inventory_Management_System.DTOs;
+using Gym_Inventory_Management_System.Exceptions;
 using Gym_Inventory_Management_System.IServices;
 using Gym_Inventory_Management_System.Mappers;
 using Microsoft.EntityFrameworkCore;
@@ -20,19 +21,23 @@ public class EquipmentService : IEquipmentService
         return equipmentList.Select(e => EquipmentMapper.ToDto(e)).ToList();
     }
 
-    public async Task<EquipmentResponseDTO?> GetEquipmentByIdAsync(int id)
+    public async Task<EquipmentResponseDTO> GetEquipmentByIdAsync(int id)
     {
         var equipment = await _context.Equipment.AsNoTracking().Include(e => e.Category).FirstOrDefaultAsync(e => e.Id == id);
-        return equipment != null ? EquipmentMapper.ToDto(equipment) : null;
+        if (equipment == null)
+        {
+            throw new NotFoundException($"Equipment not found with the specified ID = {id}");
+        }
+        return EquipmentMapper.ToDto(equipment);
     }
     
 
-    public async Task<EquipmentResponseDTO?> CreateEquipmentAsync(EquipmentCreateRequestDTO dto)
+    public async Task<EquipmentResponseDTO> CreateEquipmentAsync(EquipmentCreateRequestDTO dto)
     {
        var isCategoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
         if (!isCategoryExists)
         {
-            return null;
+            throw new NotFoundException($"Category not found with the specified ID = {dto.CategoryId}");    
         }
         var equipment = EquipmentMapper.ToEntity(dto);
         _context.Equipment.Add(equipment);
@@ -40,7 +45,7 @@ public class EquipmentService : IEquipmentService
         return EquipmentMapper.ToDto(equipment);
     }
 
-    public async Task<EquipmentResponseDTO?> UpdateEquipmentAsync(int id, EquipmentUpdateRequestDTO dto)
+    public async Task<EquipmentResponseDTO> UpdateEquipmentAsync(int id, EquipmentUpdateRequestDTO dto)
     {
         var equipment = await _context.Equipment.FindAsync(id);
         if (equipment != null)
@@ -48,7 +53,7 @@ public class EquipmentService : IEquipmentService
             var isCategoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
             if (!isCategoryExists)
             {
-                return null;
+                throw new NotFoundException($"Category not found with the specified ID = {dto.CategoryId}");
             }
             equipment.SKU = dto.SKU;
             equipment.Name = dto.Name;
@@ -62,7 +67,7 @@ public class EquipmentService : IEquipmentService
             return EquipmentMapper.ToDto(equipment);
 
         }
-        return null;
+        throw new NotFoundException($"Equipment not found with the specified ID = {id}");
     }
 
     public async Task<bool> DeleteEquipmentAsync(int id)
@@ -74,7 +79,7 @@ public class EquipmentService : IEquipmentService
             await _context.SaveChangesAsync();
             return true;
         }
-        return false;
+        throw new NotFoundException($"Equipment not found with the specified ID = {id}");
     }
 
 }

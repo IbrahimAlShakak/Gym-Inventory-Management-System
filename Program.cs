@@ -1,8 +1,9 @@
 using Gym_Inventory_Management_System.Context;
-using Gym_Inventory_Management_System.Services;
 using Gym_Inventory_Management_System.IServices;
-using Microsoft.EntityFrameworkCore;
 using Gym_Inventory_Management_System.IServicesl;
+using Gym_Inventory_Management_System.Middleware;
+using Gym_Inventory_Management_System.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gym_Inventory_Management_System;
 
@@ -44,6 +45,8 @@ public class Program
             app.UseSwagger();
             app.UseSwaggerUI();
         }
+
+        app.UseExceptionHandling(); 
 
         app.UseHttpsRedirection();
 

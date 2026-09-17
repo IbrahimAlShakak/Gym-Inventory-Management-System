@@ -1,5 +1,6 @@
 ﻿using Gym_Inventory_Management_System.Context;
 using Gym_Inventory_Management_System.DTOs;
+using Gym_Inventory_Management_System.Exceptions;
 using Gym_Inventory_Management_System.IServices;
 using Gym_Inventory_Management_System.Mappers;
 using Gym_Inventory_Management_System.Models;
@@ -18,21 +19,30 @@ public class StockMovementsService : IStockMovementsService
     }
     public async Task<List<StockMovementResponseDTO>> GetAllStockMovementsAsync()
     {
-        var stockMovements = await _context.StockMovements.AsNoTracking().ToListAsync();
+        var stockMovements = await _context.StockMovements
+            .Include(s => s.Item)
+            .Include(s => s.Location)
+            .Include(s => s.User)
+            .AsNoTracking()
+            .ToListAsync();
         return stockMovements.Select(s => StockMovementMapper.ToDto(s)).ToList();
     }
-    public async Task<StockMovementResponseDTO?> GetStockMovementByIdAsync(int id)
+    public async Task<StockMovementResponseDTO> GetStockMovementByIdAsync(int id)
     {
         var stockMovement = await _context.StockMovements.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
-        return stockMovement != null ? StockMovementMapper.ToDto(stockMovement) : null;
+        if (stockMovement == null)
+        {
+            throw new NotFoundException($"Stock movement not found with the specified ID = {id}");
+        }
+        return StockMovementMapper.ToDto(stockMovement);
     }
-    public async Task<StockMovementResponseDTO?> CreateStockMovementAsync(StockMovementCreateDTO dto)
+    public async Task<StockMovementResponseDTO> CreateStockMovementAsync(StockMovementCreateDTO dto)
     {
         var stockLevel = await _stockLevelHelperService.GetOrCreateStockLevelAsync(dto.ItemId, dto.LocationId);
 
         if (stockLevel == null)
         {
-            return null;
+            throw new NotFoundException("Invalid ItemId or LocationId — one of them does not exist.");
         }
 
         var signedQuantity = dto.Type switch
@@ -53,16 +63,38 @@ public class StockMovementsService : IStockMovementsService
     }
     public async Task<List<StockLevelResponseDTO>> GetItemStockLevelsByItemIdAsync(int itemId)
     {
+        var itemExists = await _context.Items.AnyAsync(i => i.Id == itemId);
+        if (!itemExists)
+        {
+            throw new NotFoundException($"Item not found with the specified ID = {itemId}");
+        }
         var stockLevels = await _context.StockLevels.AsNoTracking().Where(sl => sl.ItemId == itemId).ToListAsync();
         return stockLevels.Select(sl => StockLevelMapper.ToDto(sl)).ToList();
     }
     public async Task<List<StockLevelResponseDTO>> GetStockLevelsByLocationIdAsync(int locationId)
     {
+        var locationExists = await _context.Locations.AnyAsync(l => l.Id == locationId);
+        if (!locationExists)
+        {
+            throw new NotFoundException($"Location not found with the specified ID = {locationId}");
+        }
         var stockLevels = await _context.StockLevels.AsNoTracking().Where(sl => sl.LocationId == locationId).ToListAsync();
         return stockLevels.Select(sl => StockLevelMapper.ToDto(sl)).ToList();
     }
     public async Task<List<StockLevelResponseDTO>> GetItemStockLevelsAsync(int itemId, int locationId)
     {
+        var itemExists = await _context.Items.AnyAsync(i => i.Id == itemId);
+        if (!itemExists)
+        {
+            throw new NotFoundException($"Item not found with the specified ID = {itemId}");
+        }
+
+        var locationExists = await _context.Locations.AnyAsync(l => l.Id == locationId);
+        if (!locationExists)
+        {
+            throw new NotFoundException($"Location not found with the specified ID = {locationId}");
+        }
+
         var stockLevels = await _context.StockLevels.AsNoTracking().Where(sl => sl.ItemId == itemId && sl.LocationId == locationId).ToListAsync();
         return stockLevels.Select(sl => StockLevelMapper.ToDto(sl)).ToList();
     }

@@ -1,5 +1,6 @@
 ﻿using Gym_Inventory_Management_System.Context;
 using Gym_Inventory_Management_System.DTOs;
+using Gym_Inventory_Management_System.Exceptions;
 using Gym_Inventory_Management_System.IServices;
 using Gym_Inventory_Management_System.Mappers;
 using Microsoft.EntityFrameworkCore;
@@ -20,10 +21,14 @@ public class LocationsService : ILocationsService
         return locations.Select(c => LocationMapper.ToDto(c)).ToList();
     }
 
-    public async Task<LocationResponseDTO?> GetLocationByIdAsync(int id)
+    public async Task<LocationResponseDTO> GetLocationByIdAsync(int id)
     {
         var location = await _context.Locations.FindAsync(id);
-        return location != null ? LocationMapper.ToDto(location) : null;
+        if (location == null)
+        {
+            throw new NotFoundException($"Location not found with the specified ID = {id}");
+        }
+        return LocationMapper.ToDto(location);
     }
 
     public async Task<LocationResponseDTO> CreateLocationAsync(LocationCreateRequestDTO dto)
@@ -34,7 +39,7 @@ public class LocationsService : ILocationsService
         return LocationMapper.ToDto(newLocation);
     }
 
-    public async Task<LocationResponseDTO?> UpdateLocationAsync(int id, LocationUpdateRequestDTO dto)
+    public async Task<LocationResponseDTO> UpdateLocationAsync(int id, LocationUpdateRequestDTO dto)
     {
         var location = await _context.Locations.FindAsync(id);
         if (location != null)
@@ -44,8 +49,8 @@ public class LocationsService : ILocationsService
             location.ContactNumber = dto.ContactNumber;
             await _context.SaveChangesAsync();
             return LocationMapper.ToDto(location);
-        } 
-        return null;
+        }
+        throw new NotFoundException($"Location not found with the specified ID = {id}");
     }
 
     public async Task<bool> DeleteLocationAsync(int id)
@@ -53,7 +58,7 @@ public class LocationsService : ILocationsService
         var location = await _context.Locations.FindAsync(id);
         if (location == null)
         {
-            return false;
+            throw new NotFoundException($"Location not found with the specified ID = {id}");
         }
         _context.Locations.Remove(location);
         await _context.SaveChangesAsync();
