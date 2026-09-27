@@ -1,7 +1,7 @@
 ﻿using Gym_Inventory_Management_System.Context;
 using Gym_Inventory_Management_System.DTOs;
 using Gym_Inventory_Management_System.Exceptions;
-using Gym_Inventory_Management_System.IServicesl;
+using Gym_Inventory_Management_System.IServices;
 using Gym_Inventory_Management_System.Mappers;
 using Microsoft.EntityFrameworkCore;
 

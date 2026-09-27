@@ -3,7 +3,6 @@ using Gym_Inventory_Management_System.DTOs;
 using Gym_Inventory_Management_System.Exceptions;
 using Gym_Inventory_Management_System.IServices;
 using Gym_Inventory_Management_System.Mappers;
-using Gym_Inventory_Management_System.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gym_Inventory_Management_System.Services;

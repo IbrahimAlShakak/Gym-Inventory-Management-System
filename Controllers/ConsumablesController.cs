@@ -1,5 +1,5 @@
 ﻿using Gym_Inventory_Management_System.DTOs;
-using Gym_Inventory_Management_System.IServicesl;
+using Gym_Inventory_Management_System.IServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 

@@ -1,5 +1,6 @@
 ﻿using Gym_Inventory_Management_System.Context;
 using Gym_Inventory_Management_System.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace Gym_Inventory_Management_System.Data;
 
@@ -90,17 +91,23 @@ public static class DbSeeder
             "Yousef Staff", "Nour Staff", "Ahmad Staff", "Rana Staff",
             "Khaled Staff", "Dana Staff"
         };
+        var hasher = new PasswordHasher<User>();
         var users = userNames
-            .Select((name, i) => new User
+            .Select((name, i) =>
             {
-                Name = name,
-                Email = $"user{i + 1}@gym.local",
-                Birthdate = new DateOnly(1990 + i, 1, 1),
-                Address = "N/A",
-                ContactNumber = $"07-{9000000 + i}",
-                Username = name.Split(' ')[0].ToLower(),
-                PasswordHash = "placeholder-hash",
-                Role = i == 0 ? UserRole.Admin : UserRole.Staff
+                var user = new User
+                {
+                    Name = name,
+                    Email = $"user{i + 1}@gym.local",
+                    Birthdate = new DateOnly(1990 + i, 1, 1),
+                    Address = "N/A",
+                    ContactNumber = $"07-{9000000 + i}",
+                    Username = name.Split(' ')[0].ToLower(),
+                    PasswordHash = "",
+                    Role = i == 0 ? UserRole.Admin : UserRole.Staff
+                };
+                user.PasswordHash = hasher.HashPassword(user, "Password123!");
+                return user;
             })
             .ToList();
         context.Users.AddRange(users);

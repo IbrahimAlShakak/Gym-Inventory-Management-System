@@ -69,7 +69,7 @@ namespace Gym_Inventory_Management_System.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Item");
+                    b.ToTable("Items");
 
                     b.UseTptMappingStrategy();
                 });
