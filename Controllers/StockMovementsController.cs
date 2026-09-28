@@ -1,10 +1,11 @@
 ﻿using Gym_Inventory_Management_System.DTOs;
 using Gym_Inventory_Management_System.IServices;
-using Gym_Inventory_Management_System.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gym_Inventory_Management_System.Controllers;
 
+[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class StockMovementsController : ControllerBase
@@ -27,10 +28,6 @@ public class StockMovementsController : ControllerBase
     public async Task<ActionResult<StockMovementResponseDTO>> GetStockMovementByIdAsync(int id)
     {
         var stockMovement = await _stockMovementService.GetStockMovementByIdAsync(id);
-        if (stockMovement == null)
-        {
-            return NotFound();
-        }
         return Ok(stockMovement);
     }
 
@@ -41,10 +38,6 @@ public class StockMovementsController : ControllerBase
     public async Task<ActionResult<StockMovementResponseDTO>> CreateStockMovementAsync(StockMovementCreateDTO dto)
     {
         var stockMovement = await _stockMovementService.CreateStockMovementAsync(dto);
-        if (stockMovement == null)
-        {
-            return BadRequest();
-        }
         return CreatedAtAction("GetStockMovementById", new { id = stockMovement.Id }, stockMovement);
     }
 
@@ -55,10 +48,6 @@ public class StockMovementsController : ControllerBase
     public async Task<ActionResult<List<StockLevelResponseDTO>>> GetItemStockLevelsByItemIdAsync(int itemId)
     {
         var stockLevels = await _stockMovementService.GetItemStockLevelsByItemIdAsync(itemId);
-        if (stockLevels == null || !stockLevels.Any())
-        {
-            return NotFound();
-        }
         return Ok(stockLevels);
     }
 
@@ -69,10 +58,6 @@ public class StockMovementsController : ControllerBase
     public async Task<ActionResult<List<StockLevelResponseDTO>>> GetStockLevelsByLocationIdAsync(int locationId)
     {
         var stockLevels = await _stockMovementService.GetStockLevelsByLocationIdAsync(locationId);
-        if (stockLevels == null || !stockLevels.Any())
-        {
-            return NotFound();
-        }
         return Ok(stockLevels);
     }
 
@@ -83,10 +68,6 @@ public class StockMovementsController : ControllerBase
     public async Task<ActionResult<List<StockLevelResponseDTO>>> GetItemStockLevelsAsync(int itemId, int locationId)
     {
         var stockLevels = await _stockMovementService.GetItemStockLevelsAsync(itemId, locationId);
-        if (stockLevels == null || !stockLevels.Any())
-        {
-            return NotFound();
-        }
         return Ok(stockLevels);
     }
 

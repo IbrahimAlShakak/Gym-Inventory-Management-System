@@ -1,8 +1,5 @@
-﻿using Gym_Inventory_Management_System.Context;
-using Gym_Inventory_Management_System.DTOs;
-using Gym_Inventory_Management_System.Exceptions;
+﻿using Gym_Inventory_Management_System.DTOs;
 using Gym_Inventory_Management_System.IServices;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gym_Inventory_Management_System.Controllers;

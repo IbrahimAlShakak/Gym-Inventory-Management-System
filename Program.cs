@@ -8,6 +8,8 @@ using Gym_Inventory_Management_System.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Gym_Inventory_Management_System;
 
@@ -26,7 +28,6 @@ public class Program
 
         builder.Services.AddJwtAuthentication(builder.Configuration);
 
-
         builder.Services.AddScoped<ICategoriesService, CategoriesService>();
         builder.Services.AddScoped<ILocationsService, LocationsService>();
         builder.Services.AddScoped<IEquipmentService, EquipmentService>();
@@ -38,12 +39,25 @@ public class Program
         builder.Services.AddScoped<JwtTokenGenerator>();
         builder.Services.AddScoped<PasswordHasher<User>>();
         builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
 
+        builder.Services.AddSwaggerGen(options =>
+        {
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.ApiKey,
+                Scheme = "Bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "Enter 'Bearer' followed by a space and your JWT."
+            });
+
+            options.OperationFilter<SecurityRequirementsOperationFilter>(true, "Bearer");
+        });
 
         builder.Services.AddControllers().AddJsonOptions(options =>
         {
-            options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
         });
 
         var app = builder.Build();
@@ -63,7 +77,7 @@ public class Program
             app.UseSwaggerUI();
         }
 
-        app.UseExceptionHandling(); 
+        app.UseExceptionHandling();
 
         app.UseHttpsRedirection();
 
@@ -74,6 +88,6 @@ public class Program
         app.MapControllers();
 
         app.Run();
+
     }
 }
-
