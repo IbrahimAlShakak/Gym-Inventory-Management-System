@@ -1,6 +1,6 @@
 ﻿namespace Gym_Inventory_Management_System.Models;
 
-public enum UserRole { Admin, Staff }
+public enum UserRole { Admin, Manager, Staff }
 
 public class User : Person
 {

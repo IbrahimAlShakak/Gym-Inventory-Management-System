@@ -87,7 +87,7 @@ public static class DbSeeder
         // 5. Users (10)
         var userNames = new[]
         {
-            "Ibrahim Admin", "Sara Manager", "Omar Staff", "Layla Staff",
+            "Ibrahim Admin", "Sara Staff", "Omar Staff", "Layla Staff",
             "Yousef Staff", "Nour Staff", "Ahmad Staff", "Rana Staff",
             "Khaled Staff", "Dana Staff"
         };
@@ -104,8 +104,11 @@ public static class DbSeeder
                     ContactNumber = $"07-{9000000 + i}",
                     Username = name.Split(' ')[0].ToLower(),
                     PasswordHash = "",
-                    Role = i == 0 ? UserRole.Admin : UserRole.Staff
+                    Role = UserRole.Staff
                 };
+                if (i == 0) user.Role = UserRole.Admin;
+                else if (i % 3 == 1) user.Role = UserRole.Manager;
+                else user.Role = UserRole.Staff;
                 user.PasswordHash = hasher.HashPassword(user, "Password123!");
                 return user;
             })

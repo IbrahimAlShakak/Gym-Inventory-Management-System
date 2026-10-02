@@ -32,7 +32,7 @@ public class EquipmentController : ControllerBase
         return Ok(equipment);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -43,7 +43,7 @@ public class EquipmentController : ControllerBase
         return CreatedAtAction("GetEquipmentById", new { id = createdEquipment.Id }, createdEquipment);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

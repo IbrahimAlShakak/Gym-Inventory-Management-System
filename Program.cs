@@ -62,13 +62,13 @@ public class Program
 
         var app = builder.Build();
 
-        /*
+        
         using (var scope = app.Services.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             DbSeeder.Seed(context);
         }
-        */
+        
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())

@@ -33,7 +33,7 @@ public class ConsumablesController : ControllerBase
         return Ok(consumable);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -44,7 +44,7 @@ public class ConsumablesController : ControllerBase
         return CreatedAtAction("GetConsumableById", new { id = createdConsumable.Id }, createdConsumable);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
