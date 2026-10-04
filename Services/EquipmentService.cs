@@ -34,7 +34,17 @@ public class EquipmentService : IEquipmentService
 
     public async Task<EquipmentResponseDTO> CreateEquipmentAsync(EquipmentCreateRequestDTO dto)
     {
-       var isCategoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
+        var isSkuExists = await _context.Items.AnyAsync(e => e.SKU == dto.SKU);
+        if (isSkuExists)
+        {
+            throw new ConflictException($"Equipment with the specified SKU = {dto.SKU} already exists");
+        }
+        var isSerialNumberExists = await _context.Equipment.AnyAsync(e => e.SerialNumber == dto.SerialNumber);
+        if (isSerialNumberExists)
+        {
+            throw new ConflictException($"Equipment with the specified Serial Number = {dto.SerialNumber} already exists");
+        }
+        var isCategoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
         if (!isCategoryExists)
         {
             throw new NotFoundException($"Category not found with the specified ID = {dto.CategoryId}");    
@@ -50,6 +60,16 @@ public class EquipmentService : IEquipmentService
         var equipment = await _context.Equipment.FindAsync(id);
         if (equipment != null)
         {
+            var isSkuExists = await _context.Items.AnyAsync(e => e.SKU == dto.SKU);
+            if (isSkuExists)
+            {
+                throw new ConflictException($"Equipment with the specified SKU = {dto.SKU} already exists");
+            }
+            var isSerialNumberExists = await _context.Equipment.AnyAsync(e => e.SerialNumber == dto.SerialNumber);
+            if (isSerialNumberExists)
+            {
+                throw new ConflictException($"Equipment with the specified Serial Number = {dto.SerialNumber} already exists");
+            }
             var isCategoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
             if (!isCategoryExists)
             {

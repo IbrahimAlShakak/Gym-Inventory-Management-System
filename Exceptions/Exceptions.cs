@@ -10,12 +10,12 @@ public class InvalidOperationBusinessException : Exception
     public InvalidOperationBusinessException(string message) : base(message) { }
 }
 
-public class InvalidRegisterationInput : Exception
-{
-    public InvalidRegisterationInput(string message) : base(message) { }
-}
-
 public class InvalidLoginInput : Exception
 {
     public InvalidLoginInput(string message) : base(message) { }
+}
+
+public class ConflictException : Exception
+{
+    public ConflictException(string message) : base(message) { }
 }

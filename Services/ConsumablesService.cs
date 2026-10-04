@@ -37,11 +37,17 @@ public class ConsumablesService : IConsumablesService
 
     public async Task<ConsumableResponseDTO> CreateConsumableAsync(ConsumableCreateRequestDTO dto)
     {
+        var isSKUExists = await _context.Items.AnyAsync(c => c.SKU == dto.SKU);
+        if (isSKUExists)
+        {
+            throw new ConflictException("SKU already exists.");
+        }
         var isCategoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
         if (!isCategoryExists)
         {
             throw new NotFoundException("Category not found.");
         }
+
         var consumable = ConsumableMapper.ToEntity(dto);
         _context.Consumables.Add(consumable);
         await _context.SaveChangesAsync();
@@ -53,6 +59,11 @@ public class ConsumablesService : IConsumablesService
         var consumable = await _context.Consumables.FindAsync(id);
         if (consumable != null)
         {
+            var isSKUExists = await _context.Items.AnyAsync(c => c.SKU == dto.SKU);
+            if (isSKUExists)
+            {
+                throw new ConflictException("SKU already exists.");
+            }
             var isCategoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
             if (!isCategoryExists)
             {

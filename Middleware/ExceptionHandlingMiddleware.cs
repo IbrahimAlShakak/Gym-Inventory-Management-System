@@ -33,7 +33,9 @@ public class ExceptionHandlingMiddleware
         return exception switch
         {
             NotFoundException => (StatusCodes.Status404NotFound, exception.Message),
+            ConflictException => (StatusCodes.Status409Conflict, exception.Message),
             InvalidOperationBusinessException => (StatusCodes.Status400BadRequest, exception.Message),
+            InvalidLoginInput => (StatusCodes.Status401Unauthorized, exception.Message),
             _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
         };
     }

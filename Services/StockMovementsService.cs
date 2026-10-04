@@ -38,12 +38,13 @@ public class StockMovementsService : IStockMovementsService
     }
     public async Task<StockMovementResponseDTO> CreateStockMovementAsync(StockMovementCreateDTO dto)
     {
-        var stockLevel = await _stockLevelHelperService.GetOrCreateStockLevelAsync(dto.ItemId, dto.LocationId);
-
-        if (stockLevel == null)
+        var isUserExists = await _context.Users.AnyAsync(u => u.Id == dto.UserId);
+        if (!isUserExists)
         {
-            throw new NotFoundException("Invalid ItemId or LocationId — one of them does not exist.");
+            throw new NotFoundException($"User not found with the specified ID = {dto.UserId}");
         }
+
+        var stockLevel = await _stockLevelHelperService.GetOrCreateStockLevelAsync(dto.ItemId, dto.LocationId);
 
         var signedQuantity = dto.Type switch
         {

@@ -11,7 +11,7 @@ public record StockMovementCreateDTO
         int ItemId,
     [Required(ErrorMessage = "Location Id is required.")]
         int LocationId,
-    [Required(ErrorMessage = "Quantity is required.")]
+    [Required(ErrorMessage = "Quantity is required."), Range(1, int.MaxValue, ErrorMessage = "Quantity must be a positive integer.")]
         int Quantity,
     [Required(ErrorMessage = "Type is required.")]
         MovementType Type,

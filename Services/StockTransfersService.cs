@@ -82,6 +82,17 @@ public class StockTransfersService : IStockTransfersService
 
     public async Task<StockTransferResponseDTO> CreateStockTransferAsync(StockTransferCreateDTO dto)
     {
+        if (dto.FromLocationId == dto.ToLocationId)
+        {
+            throw new InvalidOperationBusinessException("Source and destination locations cannot be the same.");
+        }
+
+        var isUserExists = await _context.Users.AnyAsync(u => u.Id == dto.UserId);
+        if (!isUserExists)
+        {
+            throw new NotFoundException($"User not found with the specified ID = {dto.UserId}");
+        }
+
         var fromStockLevel = await _stockLevelHelperService.GetOrCreateStockLevelAsync(dto.ItemId, dto.FromLocationId);
         var toStockLevel = await _stockLevelHelperService.GetOrCreateStockLevelAsync(dto.ItemId, dto.ToLocationId);
 

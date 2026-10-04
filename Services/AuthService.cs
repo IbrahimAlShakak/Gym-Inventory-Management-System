@@ -25,7 +25,7 @@ public class AuthService : IAuthService
         var isUsernameTaken = await _context.Users.AnyAsync(u => u.Username == request.Username);
         if (isUsernameTaken)
         {
-            throw new InvalidRegisterationInput("Username is already taken.");
+            throw new ConflictException("Username is already taken.");
         }
 
         var newUser = new User
