@@ -35,6 +35,7 @@ public class Program
         builder.Services.AddScoped<IStockMovementsService, StockMovementsService>();
         builder.Services.AddScoped<IStockTransfersService, StockTransfersService>();
         builder.Services.AddScoped<IStockLevelHelperService, StockLevelHelperService>();
+        builder.Services.AddScoped<IUsersService, UsersService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<JwtTokenGenerator>();
         builder.Services.AddScoped<PasswordHasher<User>>();
