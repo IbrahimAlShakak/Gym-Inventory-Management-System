@@ -12,12 +12,10 @@ public record ConsumableCreateRequestDTO
     [Required(ErrorMessage = "Name is required.")]
         [MinLength(3, ErrorMessage = "Name must be at least 3 characters long.")]
     string Name,
-    [Required(ErrorMessage = "Category Id is required.")]
     int CategoryId,
     [Required(ErrorMessage = "Unit is required.")]
         [MinLength(3, ErrorMessage = "Unit must be at least 3 characters long.")]
     string Unit,
-    [Required(ErrorMessage = "Reorder threshold is required.")]
     int ReorderThreshold,
     DateOnly? ExpiryDate);
 
@@ -28,12 +26,10 @@ public record ConsumableUpdateRequestDTO
     [Required(ErrorMessage = "Name is required.")]
         [MinLength(3, ErrorMessage = "Name must be at least 3 characters long.")]
     string Name,
-    [Required(ErrorMessage = "Category Id is required.")]
     int CategoryId,
     [Required(ErrorMessage = "Unit is required.")]
         [MinLength(3, ErrorMessage = "Unit must be at least 3 characters long.")]
     string Unit,
-    [Required(ErrorMessage = "Reorder threshold is required.")]
     int ReorderThreshold,
     DateOnly? ExpiryDate);
 

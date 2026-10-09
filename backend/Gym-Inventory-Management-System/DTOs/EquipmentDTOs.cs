@@ -15,16 +15,12 @@ public record EquipmentCreateRequestDTO
     [Required(ErrorMessage = "Name is required.")]
         [MinLength(3, ErrorMessage = "Name must be at least 3 characters long.")]
     string Name,
-    [Required(ErrorMessage = "Category Id is required.")]
     int CategoryId,
     [Required(ErrorMessage = "Serial Number is required.")]
         [MinLength(6, ErrorMessage = "Serial Number must be at least 6 characters long.")]
     string SerialNumber,
-    [Required(ErrorMessage = "Purchase Date is required.")]
     DateOnly PurchaseDate,
-    [Required(ErrorMessage = "Warranty Expiry is required.")]
     DateOnly WarrantyExpiry,
-    [Required(ErrorMessage = "Maintenance Status is required.")]
     MaintenanceStatus MaintenanceStatus,
     [Required(ErrorMessage = "Condition is required.")]
         [MinLength(3, ErrorMessage = "Condition must be at least 3 characters long.")]
@@ -38,16 +34,12 @@ public record EquipmentUpdateRequestDTO
     [Required(ErrorMessage = "Name is required.")]
         [MinLength(3, ErrorMessage = "Name must be at least 3 characters long.")]
     string Name,
-    [Required(ErrorMessage = "Category Id is required.")]
     int CategoryId,
     [Required(ErrorMessage = "Serial Number is required.")]
         [MinLength(6, ErrorMessage = "Serial Number must be at least 6 characters long.")]
     string SerialNumber,
-    [Required(ErrorMessage = "Purchase Date is required.")]
     DateOnly PurchaseDate,
-    [Required(ErrorMessage = "Warranty Expiry is required.")]
     DateOnly WarrantyExpiry,
-    [Required(ErrorMessage = "Maintenance Status is required.")]
     MaintenanceStatus MaintenanceStatus,
     [Required(ErrorMessage = "Condition is required.")]
         [MinLength(3, ErrorMessage = "Condition must be at least 3 characters long.")]

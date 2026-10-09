@@ -60,12 +60,12 @@ public class EquipmentService : IEquipmentService
         var equipment = await _context.Equipment.FindAsync(id);
         if (equipment != null)
         {
-            var isSkuExists = await _context.Items.AnyAsync(e => e.SKU == dto.SKU);
-            if (isSkuExists)
+            var isSKUExists = await _context.Items.AnyAsync(c => c.SKU == dto.SKU && c.Id != id);
+            if (isSKUExists)
             {
                 throw new ConflictException($"Equipment with the specified SKU = {dto.SKU} already exists");
             }
-            var isSerialNumberExists = await _context.Equipment.AnyAsync(e => e.SerialNumber == dto.SerialNumber);
+            var isSerialNumberExists = await _context.Equipment.AnyAsync(e => e.SerialNumber == dto.SerialNumber && e.Id != id);
             if (isSerialNumberExists)
             {
                 throw new ConflictException($"Equipment with the specified Serial Number = {dto.SerialNumber} already exists");
