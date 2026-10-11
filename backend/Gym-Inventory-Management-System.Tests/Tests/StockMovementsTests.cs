@@ -13,14 +13,13 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
         _factory = factory;
     }
 
-    // Admin client + a user id + a fresh item + a fresh location.
-    private async Task<(HttpClient Admin, int UserId, int ItemId, int LocationId)> SetupAsync()
+    // Admin client + a fresh item + a fresh location.
+    private async Task<(HttpClient Admin, int ItemId, int LocationId)> SetupAsync()
     {
         var admin = await _factory.LoggedInAs(TestUsers.Admin);
-        var userId = await TestData.GetAnyUserIdAsync(admin);
         var itemId = await TestData.CreateConsumableAsync(admin);
         var locationId = await TestData.CreateLocationAsync(admin);
-        return (admin, userId, itemId, locationId);
+        return (admin, itemId, locationId);
     }
 
     [Theory]
@@ -45,22 +44,50 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [InlineData(TestUsers.Staff)]
     public async Task Create_AnyRole_Returns201(string username)
     {
-        var (_, userId, itemId, locationId) = await SetupAsync();
+        var (_, itemId, locationId) = await SetupAsync();
         var client = await _factory.LoggedInAs(username);
 
         var response = await client.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, locationId, 10, "Received", userId));
+            TestData.Movement(itemId, locationId, 10, "Received"));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
+    public async Task Create_RecordsTheLoggedInUser_EvenIfBodyClaimsAnotherUser()
+    {
+        var admin = await _factory.LoggedInAs(TestUsers.Admin);
+        var staff = await _factory.LoggedInAs(TestUsers.Staff);
+        var itemId = await TestData.CreateConsumableAsync(admin);
+        var locationId = await TestData.CreateLocationAsync(admin);
+
+        var byAdmin = await admin.PostAsJsonAsync("/api/StockMovements",
+            TestData.Movement(itemId, locationId, 5, "Received"));
+        var adminUserId = await TestData.ReadIntAsync(byAdmin, "userId");
+
+        // Staff tries to pretend to be the admin by sending the admin's id in the body.
+        var byStaff = await staff.PostAsJsonAsync("/api/StockMovements", new
+        {
+            ItemId = itemId,
+            LocationId = locationId,
+            Quantity = 5,
+            Type = "Received",
+            MovementDate = "2026-10-11",
+            Notes = "Test notes",
+            UserId = adminUserId
+        });
+
+        Assert.Equal(HttpStatusCode.Created, byStaff.StatusCode);
+        Assert.NotEqual(adminUserId, await TestData.ReadIntAsync(byStaff, "userId"));
+    }
+
+    [Fact]
     public async Task Received_IncreasesStock()
     {
-        var (admin, userId, itemId, locationId) = await SetupAsync();
+        var (admin, itemId, locationId) = await SetupAsync();
 
-        await TestData.ReceiveAsync(admin, itemId, locationId, 10, userId);
-        await TestData.ReceiveAsync(admin, itemId, locationId, 5, userId);
+        await TestData.ReceiveAsync(admin, itemId, locationId, 10);
+        await TestData.ReceiveAsync(admin, itemId, locationId, 5);
 
         Assert.Equal(15, await TestData.GetQuantityAsync(admin, itemId, locationId));
     }
@@ -68,11 +95,11 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Used_DecreasesStock()
     {
-        var (admin, userId, itemId, locationId) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, locationId, 10, userId);
+        var (admin, itemId, locationId) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, locationId, 10);
 
         var response = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, locationId, 4, "Used", userId));
+            TestData.Movement(itemId, locationId, 4, "Used"));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal(6, await TestData.GetQuantityAsync(admin, itemId, locationId));
@@ -81,11 +108,11 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Damaged_DecreasesStock()
     {
-        var (admin, userId, itemId, locationId) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, locationId, 10, userId);
+        var (admin, itemId, locationId) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, locationId, 10);
 
         var response = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, locationId, 3, "Damaged", userId));
+            TestData.Movement(itemId, locationId, 3, "Damaged"));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal(7, await TestData.GetQuantityAsync(admin, itemId, locationId));
@@ -94,11 +121,11 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Used_ExactlyAllStock_LeavesZero()
     {
-        var (admin, userId, itemId, locationId) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, locationId, 5, userId);
+        var (admin, itemId, locationId) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, locationId, 5);
 
         var response = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, locationId, 5, "Used", userId));
+            TestData.Movement(itemId, locationId, 5, "Used"));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal(0, await TestData.GetQuantityAsync(admin, itemId, locationId));
@@ -107,11 +134,11 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Used_MoreThanAvailable_Returns400_AndStockIsUnchanged()
     {
-        var (admin, userId, itemId, locationId) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, locationId, 5, userId);
+        var (admin, itemId, locationId) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, locationId, 5);
 
         var response = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, locationId, 10, "Used", userId));
+            TestData.Movement(itemId, locationId, 10, "Used"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal(5, await TestData.GetQuantityAsync(admin, itemId, locationId));
@@ -120,10 +147,10 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Damaged_WhenNoStockExists_Returns400()
     {
-        var (admin, userId, itemId, locationId) = await SetupAsync();
+        var (admin, itemId, locationId) = await SetupAsync();
 
         var response = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, locationId, 1, "Damaged", userId));
+            TestData.Movement(itemId, locationId, 1, "Damaged"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -133,10 +160,10 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [InlineData(-5)]
     public async Task Create_WithNonPositiveQuantity_Returns400(int quantity)
     {
-        var (admin, userId, itemId, locationId) = await SetupAsync();
+        var (admin, itemId, locationId) = await SetupAsync();
 
         var response = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, locationId, quantity, "Received", userId));
+            TestData.Movement(itemId, locationId, quantity, "Received"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -144,10 +171,10 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Create_WithShortNotes_Returns400()
     {
-        var (admin, userId, itemId, locationId) = await SetupAsync();
+        var (admin, itemId, locationId) = await SetupAsync();
 
         var response = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, locationId, 5, "Received", userId, notes: "abc"));
+            TestData.Movement(itemId, locationId, 5, "Received", notes: "abc"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -155,10 +182,10 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Create_WithUnknownType_Returns400()
     {
-        var (admin, userId, itemId, locationId) = await SetupAsync();
+        var (admin, itemId, locationId) = await SetupAsync();
 
         var response = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, locationId, 5, "Banana", userId));
+            TestData.Movement(itemId, locationId, 5, "Banana"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -166,10 +193,10 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Create_WithMissingItem_Returns404()
     {
-        var (admin, userId, _, locationId) = await SetupAsync();
+        var (admin, _, locationId) = await SetupAsync();
 
         var response = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(99999, locationId, 5, "Received", userId));
+            TestData.Movement(99999, locationId, 5, "Received"));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -177,21 +204,10 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Create_WithMissingLocation_Returns404()
     {
-        var (admin, userId, itemId, _) = await SetupAsync();
+        var (admin, itemId, _) = await SetupAsync();
 
         var response = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, 99999, 5, "Received", userId));
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Create_WithMissingUser_Returns404()
-    {
-        var (admin, _, itemId, locationId) = await SetupAsync();
-
-        var response = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, locationId, 5, "Received", userId: 99999));
+            TestData.Movement(itemId, 99999, 5, "Received"));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -199,9 +215,9 @@ public class StockMovementsTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Create_ThenGetById_ReturnsTheMovement()
     {
-        var (admin, userId, itemId, locationId) = await SetupAsync();
+        var (admin, itemId, locationId) = await SetupAsync();
         var created = await admin.PostAsJsonAsync("/api/StockMovements",
-            TestData.Movement(itemId, locationId, 7, "Received", userId));
+            TestData.Movement(itemId, locationId, 7, "Received"));
         var id = await TestData.ReadIdAsync(created);
 
         var fetched = await admin.GetAsync($"/api/StockMovements/Stock-Movement/{id}");

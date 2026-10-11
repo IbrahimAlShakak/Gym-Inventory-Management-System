@@ -2,7 +2,7 @@
 using System.Net;
 using System.Net.Http.Json;
 
-namespace Gym_Inventory_Management_System.Tests.Tests;
+namespace Gym_Inventory_Management_System.Tests;
 
 public class AuthAndRoleTests : IClassFixture<GymApiFactory>
 {

@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace Gym_Inventory_Management_System.Tests.Tests;
+namespace Gym_Inventory_Management_System.Tests;
 
 public class AuthorizationTests : IClassFixture<GymApiFactory>
 {

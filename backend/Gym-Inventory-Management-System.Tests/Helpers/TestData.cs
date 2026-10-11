@@ -52,27 +52,25 @@ public static class TestData
     };
 
     public static object Movement(int itemId, int locationId, int quantity, string type,
-    int userId, string notes = "Test notes") => new
+     string notes = "Test notes") => new
+     {
+         ItemId = itemId,
+         LocationId = locationId,
+         Quantity = quantity,
+         Type = type,                  // "Received", "Used", "Damaged" or "Adjusted"
+         MovementDate = "2026-10-11",
+         Notes = notes
+     };
+
+    public static object Transfer(int itemId, int fromLocationId, int toLocationId, int quantity) => new
     {
         ItemId = itemId,
-        LocationId = locationId,
+        FromLocationId = fromLocationId,
+        ToLocationId = toLocationId,
         Quantity = quantity,
-        Type = type,                  // "Received", "Used", "Damaged" or "Adjusted"
-        MovementDate = "2026-10-11",
-        UserId = userId,
-        Notes = notes
+        TransferDate = "2026-10-11T10:00:00"
     };
 
-    public static object Transfer(int itemId, int fromLocationId, int toLocationId,
-        int quantity, int userId) => new
-        {
-            ItemId = itemId,
-            FromLocationId = fromLocationId,
-            ToLocationId = toLocationId,
-            Quantity = quantity,
-            TransferDate = "2026-10-11T10:00:00",
-            UserId = userId
-        };
     // Reads the "id" field from a JSON response.
     public static async Task<int> ReadIdAsync(HttpResponseMessage response)
     {
@@ -126,11 +124,10 @@ public static class TestData
     }
 
     // Puts stock into a location by recording a "Received" movement.
-    public static async Task ReceiveAsync(HttpClient client, int itemId, int locationId,
-        int quantity, int userId)
+    public static async Task ReceiveAsync(HttpClient client, int itemId, int locationId, int quantity)
     {
         var response = await client.PostAsJsonAsync("/api/StockMovements",
-            Movement(itemId, locationId, quantity, "Received", userId));
+            Movement(itemId, locationId, quantity, "Received"));
         response.EnsureSuccessStatusCode();
     }
 

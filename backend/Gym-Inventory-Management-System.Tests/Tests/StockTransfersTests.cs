@@ -13,15 +13,14 @@ public class StockTransfersTests : IClassFixture<GymApiFactory>
         _factory = factory;
     }
 
-    // Admin client, a user id, a fresh item and two fresh locations.
-    private async Task<(HttpClient Admin, int UserId, int ItemId, int FromId, int ToId)> SetupAsync()
+    // Admin client, a fresh item and two fresh locations.
+    private async Task<(HttpClient Admin, int ItemId, int FromId, int ToId)> SetupAsync()
     {
         var admin = await _factory.LoggedInAs(TestUsers.Admin);
-        var userId = await TestData.GetAnyUserIdAsync(admin);
         var itemId = await TestData.CreateConsumableAsync(admin);
         var fromId = await TestData.CreateLocationAsync(admin);
         var toId = await TestData.CreateLocationAsync(admin);
-        return (admin, userId, itemId, fromId, toId);
+        return (admin, itemId, fromId, toId);
     }
 
     [Theory]
@@ -45,24 +44,50 @@ public class StockTransfersTests : IClassFixture<GymApiFactory>
     [InlineData(TestUsers.Staff)]
     public async Task Create_AnyRole_Returns201(string username)
     {
-        var (admin, userId, itemId, fromId, toId) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, fromId, 10, userId);
+        var (admin, itemId, fromId, toId) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, fromId, 10);
         var client = await _factory.LoggedInAs(username);
 
         var response = await client.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer",
-            TestData.Transfer(itemId, fromId, toId, 5, userId));
+            TestData.Transfer(itemId, fromId, toId, 5));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
+    public async Task Create_RecordsTheLoggedInUser_EvenIfBodyClaimsAnotherUser()
+    {
+        var (admin, itemId, fromId, toId) = await SetupAsync();
+        var staff = await _factory.LoggedInAs(TestUsers.Staff);
+
+        // Put stock at the source and learn the admin's user id from that movement.
+        var received = await admin.PostAsJsonAsync("/api/StockMovements",
+            TestData.Movement(itemId, fromId, 10, "Received"));
+        var adminUserId = await TestData.ReadIntAsync(received, "userId");
+
+        // Staff tries to pretend to be the admin by sending the admin's id in the body.
+        var response = await staff.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer", new
+        {
+            ItemId = itemId,
+            FromLocationId = fromId,
+            ToLocationId = toId,
+            Quantity = 3,
+            TransferDate = "2026-10-11T10:00:00",
+            UserId = adminUserId
+        });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.NotEqual(adminUserId, await TestData.ReadIntAsync(response, "userId"));
+    }
+
+    [Fact]
     public async Task Transfer_MovesStockBetweenLocations()
     {
-        var (admin, userId, itemId, fromId, toId) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, fromId, 10, userId);
+        var (admin, itemId, fromId, toId) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, fromId, 10);
 
         await admin.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer",
-            TestData.Transfer(itemId, fromId, toId, 4, userId));
+            TestData.Transfer(itemId, fromId, toId, 4));
 
         Assert.Equal(6, await TestData.GetQuantityAsync(admin, itemId, fromId));
         Assert.Equal(4, await TestData.GetQuantityAsync(admin, itemId, toId));
@@ -71,11 +96,11 @@ public class StockTransfersTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Transfer_ExactlyAllStock_LeavesZeroAtSource()
     {
-        var (admin, userId, itemId, fromId, toId) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, fromId, 5, userId);
+        var (admin, itemId, fromId, toId) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, fromId, 5);
 
         var response = await admin.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer",
-            TestData.Transfer(itemId, fromId, toId, 5, userId));
+            TestData.Transfer(itemId, fromId, toId, 5));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal(0, await TestData.GetQuantityAsync(admin, itemId, fromId));
@@ -85,11 +110,11 @@ public class StockTransfersTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Transfer_MoreThanAvailable_Returns400_AndNothingChanges()
     {
-        var (admin, userId, itemId, fromId, toId) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, fromId, 3, userId);
+        var (admin, itemId, fromId, toId) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, fromId, 3);
 
         var response = await admin.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer",
-            TestData.Transfer(itemId, fromId, toId, 5, userId));
+            TestData.Transfer(itemId, fromId, toId, 5));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal(3, await TestData.GetQuantityAsync(admin, itemId, fromId));
@@ -99,10 +124,10 @@ public class StockTransfersTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Transfer_FromLocationWithNoStock_Returns400()
     {
-        var (admin, userId, itemId, fromId, toId) = await SetupAsync();
+        var (admin, itemId, fromId, toId) = await SetupAsync();
 
         var response = await admin.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer",
-            TestData.Transfer(itemId, fromId, toId, 1, userId));
+            TestData.Transfer(itemId, fromId, toId, 1));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -110,11 +135,11 @@ public class StockTransfersTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Transfer_ToSameLocation_Returns400()
     {
-        var (admin, userId, itemId, fromId, _) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, fromId, 10, userId);
+        var (admin, itemId, fromId, _) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, fromId, 10);
 
         var response = await admin.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer",
-            TestData.Transfer(itemId, fromId, fromId, 5, userId));
+            TestData.Transfer(itemId, fromId, fromId, 5));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal(10, await TestData.GetQuantityAsync(admin, itemId, fromId));
@@ -125,11 +150,11 @@ public class StockTransfersTests : IClassFixture<GymApiFactory>
     [InlineData(-3)]
     public async Task Transfer_WithNonPositiveQuantity_Returns400(int quantity)
     {
-        var (admin, userId, itemId, fromId, toId) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, fromId, 10, userId);
+        var (admin, itemId, fromId, toId) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, fromId, 10);
 
         var response = await admin.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer",
-            TestData.Transfer(itemId, fromId, toId, quantity, userId));
+            TestData.Transfer(itemId, fromId, toId, quantity));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -137,10 +162,10 @@ public class StockTransfersTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Transfer_WithMissingItem_Returns404()
     {
-        var (admin, userId, _, fromId, toId) = await SetupAsync();
+        var (admin, _, fromId, toId) = await SetupAsync();
 
         var response = await admin.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer",
-            TestData.Transfer(99999, fromId, toId, 1, userId));
+            TestData.Transfer(99999, fromId, toId, 1));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -148,23 +173,11 @@ public class StockTransfersTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Transfer_WithMissingDestination_Returns404()
     {
-        var (admin, userId, itemId, fromId, _) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, fromId, 10, userId);
+        var (admin, itemId, fromId, _) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, fromId, 10);
 
         var response = await admin.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer",
-            TestData.Transfer(itemId, fromId, 99999, 1, userId));
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Transfer_WithMissingUser_Returns404()
-    {
-        var (admin, userId, itemId, fromId, toId) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, fromId, 10, userId);
-
-        var response = await admin.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer",
-            TestData.Transfer(itemId, fromId, toId, 1, userId: 99999));
+            TestData.Transfer(itemId, fromId, 99999, 1));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -172,10 +185,10 @@ public class StockTransfersTests : IClassFixture<GymApiFactory>
     [Fact]
     public async Task Create_ThenGetById_ReturnsTheTransfer()
     {
-        var (admin, userId, itemId, fromId, toId) = await SetupAsync();
-        await TestData.ReceiveAsync(admin, itemId, fromId, 10, userId);
+        var (admin, itemId, fromId, toId) = await SetupAsync();
+        await TestData.ReceiveAsync(admin, itemId, fromId, 10);
         var created = await admin.PostAsJsonAsync("/api/StockTransfers/Stock-Transfer",
-            TestData.Transfer(itemId, fromId, toId, 6, userId));
+            TestData.Transfer(itemId, fromId, toId, 6));
         var id = await TestData.ReadIdAsync(created);
 
         var fetched = await admin.GetAsync($"/api/StockTransfers/Stock-Transfer/{id}");
