@@ -1,44 +1,96 @@
 # Gym Inventory / Warehouse Management System
 
-A backend-focused inventory and warehouse management system for a gym.
+[![Backend CI](https://github.com/IbrahimAlShakak/Gym-Inventory-Management-System/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/IbrahimAlShakak/Gym-Inventory-Management-System/actions/workflows/backend-ci.yml)
+
+A backend-focused inventory and warehouse management system for a gym: it tracks equipment and consumables across multiple locations, records every stock change as history, and restricts who can do what through role-based authorization.
 
 ## Tech Stack
 
-- **Backend:** C# / ASP.NET Core
+- **Backend:** C# / ASP.NET Core Web API (.NET 10)
 - **ORM:** Entity Framework Core
 - **Database:** SQL Server
-- **Auth:** JWT Bearer authentication, role-based authorization
+- **Auth:** JWT Bearer authentication, role-based authorization (Admin / Manager / Staff)
+- **Testing:** xUnit integration tests (`WebApplicationFactory`) running against in-memory SQLite
+- **CI:** GitHub Actions (build + full test suite on every pull request)
 - **Frontend:** React *(planned)*
 
 ## Status
 
-🚧 Work in progress — authentication and authorization are in place; validation hardening and further testing are ongoing.
+🚧 Work in progress. The backend is feature-complete for its core scope (inventory, stock tracking, users, auth) and covered by automated tests. A React frontend is planned.
 
-## What's implemented so far
+## Repository Layout
 
-- Domain model:
-  - `Item` (abstract base) → `Equipment`, `Consumable` (TPT inheritance)
-  - `Person` (abstract base) → `User`
-  - `Category`, `Location`
-  - `StockLevel` — current quantity snapshot, per item/location
-  - `StockMovement` — append-only history of stock changes (received, used, adjusted, damaged)
-  - `StockTransfer` — stock moved between two locations
-- `AppDbContext` with EF Core configuration: relationships, TPT mapping, enum-to-string conversions
-- Initial database migration applied
-- Database seeder with sample data (10 rows across core tables) for local testing, including hashed passwords for seeded users
-- CRUD API endpoints (Controllers + Services + DTOs + Mappers) for:
-  - Categories, Locations, Consumables, Equipment
-  - Stock Movements — recording a movement updates the matching `StockLevel` transactionally
-  - Stock Transfers — moving stock between two locations, updating both `StockLevel` rows atomically, with an insufficient-stock check
-  - Read endpoints for current stock levels (by item, by location, by item+location) and low-stock consumables
-- Shared `StockLevelHelperService` (get-or-create pattern) used by both Stock Movements and Stock Transfers
-- Global exception-handling middleware: custom exceptions (`NotFoundException`, `InvalidOperationBusinessException`) are caught centrally and mapped to consistent HTTP responses (404 / 400), instead of scattered null-checks
-- **Authentication & Authorization:**
-  - Password hashing via ASP.NET Core's `PasswordHasher<User>` (no plaintext passwords stored)
-  - JWT issuance on register/login (`POST /api/auth/register`, `POST /api/auth/login`), signed with a secret key stored in User Secrets (never committed)
-  - `[Authorize]` applied across all controllers; write operations (create/update/delete) on Categories, Locations, Equipment, and Consumables are restricted to the `Admin` role; Stock Movements/Transfers are open to any authenticated user
-  - Swagger configured with Bearer token support for testing protected endpoints
-- Enums serialized as strings over the API (not raw integers), matching how they're stored in the database
+```
+.
+├── .github/workflows/        # CI workflow
+├── backend/
+│   ├── Gym-Inventory-Management-System.slnx
+│   ├── Gym-Inventory-Management-System/          # the API project
+│   └── Gym-Inventory-Management-System.Tests/    # integration tests
+└── frontend/                 # planned
+```
+
+## Features
+
+### Domain model
+- `Item` (abstract base) → `Equipment`, `Consumable` (Table-Per-Type inheritance)
+- `Person` (abstract base) → `User`
+- `Category`, `Location`
+- `StockLevel`: current quantity snapshot per item and location
+- `StockMovement`: append-only history of stock changes
+- `StockTransfer`: stock moved between two locations
+
+### Inventory and stock
+- CRUD for Categories, Locations, Equipment and Consumables, with SKU and serial-number uniqueness enforced (duplicates return `409 Conflict`)
+- **Stock movements:** `Received` and `Adjusted` add stock; `Used` and `Damaged` remove it. Each movement updates the matching `StockLevel` and is stored as history.
+- **Stock transfers:** move stock between two locations; both `StockLevel` rows are updated in one save.
+- **Stock can never go negative:** removing or transferring more than is available is rejected with `400` and leaves quantities unchanged.
+- Read endpoints for current stock by item, by location, and by item + location, plus a low-stock consumables report
+- The acting user of every movement and transfer is taken from the **JWT**, never from the request body, so a user cannot record actions as someone else.
+
+### Users and authentication
+- Password hashing via ASP.NET Core's `PasswordHasher<User>` (no plaintext passwords stored)
+- JWT issuance on register and login, signed with a secret key kept in User Secrets (never committed)
+- Public registration always creates a `Staff` user; roles can only be changed by an Admin
+- User management (Admin / Manager): list and view users, create, update, change password, promote/demote, delete
+
+### Roles
+
+| Capability | Admin | Manager | Staff |
+|---|:-:|:-:|:-:|
+| Read categories, locations, equipment, consumables, stock levels | ✅ | ✅ | ✅ |
+| Record stock movements and transfers | ✅ | ✅ | ✅ |
+| Create / update categories, locations, equipment, consumables | ✅ | ✅ | ❌ |
+| Delete categories, locations, equipment, consumables | ✅ | ❌ | ❌ |
+| View users | ✅ | ✅ | ❌ |
+| Create / update / delete / promote users, change passwords | ✅ | ❌ | ❌ |
+
+### Error handling
+Services throw specific exceptions and one global middleware turns them into consistent HTTP responses:
+
+| Exception | Status |
+|---|---|
+| Validation failure (Data Annotations, automatic) | 400 |
+| `InvalidOperationBusinessException` (e.g. insufficient stock, same-location transfer) | 400 |
+| `InvalidLoginInput` | 401 |
+| `NotFoundException` | 404 |
+| `ConflictException` (e.g. duplicate SKU or username) | 409 |
+| Anything unexpected | 500 |
+
+### Swagger
+Swagger is configured with Bearer token support, and enums are serialized as strings (matching how they are stored in the database).
+
+## API Overview
+
+| Area | Routes |
+|---|---|
+| Auth | `POST /api/auth/login`, `POST /api/auth/register` |
+| Categories, Locations, Equipment, Consumables | `GET /api/{resource}`, `GET /api/{resource}/{id}`, `POST`, `PUT /{id}`, `DELETE /{id}` |
+| Consumables (extra) | `GET /api/consumables/low-stock` |
+| Stock movements | `GET /api/StockMovements/All-Stock-Movements`, `GET /api/StockMovements/Stock-Movement/{id}`, `POST /api/StockMovements` |
+| Stock levels | `GET /api/Stock-Levels/Item/{itemId}`, `/Location/{locationId}`, `/Item/{itemId}/Location/{locationId}` |
+| Stock transfers | `GET /api/StockTransfers/All-Stock-Transfers`, `/Stock-Transfer/{id}`, `/Stock-Transfers/Item/{itemId}`, `/Stock-Transfers/Locations/{from}/{to}`, `POST /api/StockTransfers/Stock-Transfer` |
+| Users | `GET /api/users/all`, `GET /api/users/{id}`, `POST /api/users`, `PUT /api/users/update/{id}`, `PUT /api/users/promote/{id}`, `PUT /api/users/{id}/password`, `DELETE /api/users/{id}` |
 
 ## Getting Started
 
@@ -48,7 +100,11 @@ A backend-focused inventory and warehouse management system for a gym.
 - `dotnet-ef` CLI tool (`dotnet tool install --global dotnet-ef`)
 
 ### Setup
+All commands below run from the API project folder:
+
 ```bash
+cd backend/Gym-Inventory-Management-System
+
 # Restore dependencies
 dotnet restore
 
@@ -62,24 +118,66 @@ dotnet user-secrets set "Jwt:Key" "<a long random string, 32+ characters>"
 dotnet run
 ```
 
-On first run, the app seeds sample data automatically (categories, locations, items, users, stock levels, movements, and transfers) if the database is empty. Seeded users authenticate with the password `Password123!`.
+On first run, the app seeds sample data automatically (categories, locations, items, users, stock levels, movements and transfers) if the database is empty.
+
+### Seeded accounts (local development only)
+
+| Username | Role |
+|---|---|
+| `ibrahim` | Admin |
+| `sara`, `yousef`, `rana` | Manager |
+| `omar`, `layla`, `nour`, `ahmad`, `khaled`, `dana` | Staff |
+
+All seeded users use the password `Password123!`. These accounts exist for local testing; change or remove them before deploying anywhere real.
 
 ### Configuration
 - Update the `DefaultConnection` string in `appsettings.json` to point to your local SQL Server instance.
-- `Jwt:Issuer`, `Jwt:Audience`, and `Jwt:ExpiryHours` are set in `appsettings.json`. `Jwt:Key` is kept out of source control and must be set via `dotnet user-secrets` (see Setup above).
+- `Jwt:Issuer`, `Jwt:Audience` and `Jwt:ExpiryHours` are set in `appsettings.json`. `Jwt:Key` is kept out of source control and must be set via `dotnet user-secrets` (see Setup).
 
-### Testing protected endpoints in Swagger
-1. Call `POST /api/auth/login` with a valid username/password and copy the returned `token`.
+### Trying protected endpoints in Swagger
+1. Call `POST /api/auth/login` with a username and password and copy the returned `token`.
 2. Click **Authorize** in the Swagger UI and enter `Bearer <token>`.
 3. Protected endpoints will now include the token automatically.
 
+## Testing
+
+The project has 140+ automated **integration tests** that start the real API in memory and call it over HTTP, so they exercise routing, authentication, authorization, validation, services, the database and the exception middleware together.
+
+```bash
+# from the repository root
+dotnet test backend/Gym-Inventory-Management-System.slnx
+```
+
+(or use **Test Explorer** in Visual Studio)
+
+**How the tests are set up**
+- A custom `WebApplicationFactory` boots the app with a test JWT key and replaces SQL Server with an **in-memory SQLite** database, so tests need no external services and run in a few seconds.
+- The database is created fresh and seeded on startup. Tests log in as the seeded Admin, Manager and Staff users and create their own data with unique values, so they don't depend on each other or on seed IDs.
+
+**What is covered**
+- Authentication: login, registration (always `Staff`, duplicate usernames, validation)
+- Authorization: every endpoint rejects anonymous requests (`401`); role matrix for create, update and delete (`403` where not allowed)
+- Validation (`400`), not-found (`404`) and conflict (`409`) behaviour for every resource
+- Stock rules: movements change quantities correctly, stock can never go negative, transfers move stock atomically, same-location transfers are rejected
+- Security: the acting user always comes from the token, even if the request body claims another user
+
+**Known limitation:** SQLite and SQL Server differ in places (for example, text comparison is case-sensitive in SQLite). A future improvement is running the tests against a real SQL Server container.
+
+## Continuous Integration
+
+A GitHub Actions workflow (`.github/workflows/backend-ci.yml`) restores, builds and runs the full test suite on a clean Ubuntu machine for every pull request and every push to `main` that touches `backend/`.
+
 ## Design Notes
 
-Some of the key modeling decisions behind this project:
+- **Equipment vs. Consumable** are separate subtypes (not a boolean flag) via EF Core's Table-Per-Type inheritance, since they need genuinely different fields.
+- **StockLevel vs. StockMovement:** `StockMovement` is the append-only record of what happened, when and by whom; `StockLevel` is a cached current-quantity snapshot kept in sync with it, similar to how ledger systems track state.
+- **Multi-location support** is built in from the start: every stock quantity and movement is tied to a specific `Location`.
+- Enums (`MovementType`, `MaintenanceStatus`, `UserRole`) are stored as strings in the database for readability and safety against reordering.
+- **Error handling is centralized:** services throw specific exceptions and a single middleware maps them to HTTP responses, avoiding scattered null checks and mismatched status codes.
+- **Validation is layered:** Data Annotations on DTOs handle field-level rules (automatic `400`); business rules live in the service layer.
+- **Authentication** uses hand-rolled JWT issuance (not ASP.NET Core Identity) with `PasswordHasher<User>`, kept deliberately lightweight for this project's scope. There are no refresh tokens, an intentional scope decision.
+- **Least privilege by design:** public registration cannot create privileged users, and the roles are split so that only Admins can delete data or manage users.
 
-- **Equipment vs. Consumable** are modeled as separate subtypes (not a boolean flag) via EF Core's Table-Per-Type (TPT) inheritance strategy, since they need genuinely different fields.
-- **StockLevel vs. StockMovement**: `StockMovement` is the append-only source of truth (what happened, when, by whom); `StockLevel` is a cached current-quantity snapshot kept in sync with it. This mirrors how ledger/accounting systems track state.
-- **Multi-location support** is built in from the start — every stock quantity and movement is tied to a specific `Location`.
-- Enums (`MovementType`, `MaintenanceStatus`, `UserRole`) are stored as strings in the database (not raw integers) for readability and safety against reordering.
-- **Error handling** is centralized: services throw specific exceptions (e.g. `NotFoundException`) instead of returning `null` for every failure case, and a single middleware translates them into consistent HTTP responses — avoiding repeated null-checks and mismatched status codes across controllers.
-- **Authentication** uses hand-rolled JWT issuance (not ASP.NET Core Identity) paired with `PasswordHasher<User>` for hashing — kept deliberately lightweight for this project's scope, with no refresh tokens (a documented, intentional scope decision rather than an oversight).
+## License
+
+MIT, see [LICENSE.txt](LICENSE.txt).
