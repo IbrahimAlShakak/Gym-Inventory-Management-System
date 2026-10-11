@@ -59,7 +59,7 @@ public class ConsumablesService : IConsumablesService
         var consumable = await _context.Consumables.FindAsync(id);
         if (consumable != null)
         {
-            var isSKUExists = await _context.Items.AnyAsync(c => c.SKU == dto.SKU);
+            var isSKUExists = await _context.Items.AnyAsync(c => c.SKU == dto.SKU && c.Id != id);
             if (isSKUExists)
             {
                 throw new ConflictException("SKU already exists.");

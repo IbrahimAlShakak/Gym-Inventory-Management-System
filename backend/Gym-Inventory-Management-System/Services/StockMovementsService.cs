@@ -55,7 +55,14 @@ public class StockMovementsService : IStockMovementsService
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        stockLevel.Quantity += signedQuantity;
+        var newQuantity = stockLevel.Quantity + signedQuantity;
+        if (newQuantity < 0)
+        {
+            throw new InvalidOperationBusinessException(
+                $"Insufficient stock. Available quantity: {stockLevel.Quantity}, requested quantity: {dto.Quantity}");
+        }
+
+        stockLevel.Quantity = newQuantity;
         var stockMovement = StockMovementMapper.ToEntity(dto);
         _context.StockMovements.Add(stockMovement);
         await _context.SaveChangesAsync();
