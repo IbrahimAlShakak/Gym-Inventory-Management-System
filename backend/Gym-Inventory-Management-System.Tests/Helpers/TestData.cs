@@ -51,6 +51,28 @@ public static class TestData
         ExpiryDate = (string?)null
     };
 
+    public static object Movement(int itemId, int locationId, int quantity, string type,
+    int userId, string notes = "Test notes") => new
+    {
+        ItemId = itemId,
+        LocationId = locationId,
+        Quantity = quantity,
+        Type = type,                  // "Received", "Used", "Damaged" or "Adjusted"
+        MovementDate = "2026-10-11",
+        UserId = userId,
+        Notes = notes
+    };
+
+    public static object Transfer(int itemId, int fromLocationId, int toLocationId,
+        int quantity, int userId) => new
+        {
+            ItemId = itemId,
+            FromLocationId = fromLocationId,
+            ToLocationId = toLocationId,
+            Quantity = quantity,
+            TransferDate = "2026-10-11T10:00:00",
+            UserId = userId
+        };
     // Reads the "id" field from a JSON response.
     public static async Task<int> ReadIdAsync(HttpResponseMessage response)
     {
@@ -70,5 +92,56 @@ public static class TestData
         var response = await client.PostAsJsonAsync("/api/categories", Category());
         response.EnsureSuccessStatusCode();
         return await ReadIdAsync(response);
+    }
+
+    public static async Task<int> CreateLocationAsync(HttpClient client)
+    {
+        var response = await client.PostAsJsonAsync("/api/locations", Location());
+        response.EnsureSuccessStatusCode();
+        return await ReadIdAsync(response);
+    }
+
+    // Creates a fresh category plus a consumable in it, and returns the consumable's id.
+    public static async Task<int> CreateConsumableAsync(HttpClient client)
+    {
+        var categoryId = await CreateCategoryAsync(client);
+        var response = await client.PostAsJsonAsync("/api/consumables", Consumable(categoryId));
+        response.EnsureSuccessStatusCode();
+        return await ReadIdAsync(response);
+    }
+
+
+    public static async Task<int> GetAnyUserIdAsync(HttpClient admin)
+    {
+        var response = await admin.GetAsync("/api/users/all");
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return json.RootElement[0].GetProperty("id").GetInt32();
+    }
+
+    public static async Task<int> ReadIntAsync(HttpResponseMessage response, string property)
+    {
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return json.RootElement.GetProperty(property).GetInt32();
+    }
+
+    // Puts stock into a location by recording a "Received" movement.
+    public static async Task ReceiveAsync(HttpClient client, int itemId, int locationId,
+        int quantity, int userId)
+    {
+        var response = await client.PostAsJsonAsync("/api/StockMovements",
+            Movement(itemId, locationId, quantity, "Received", userId));
+        response.EnsureSuccessStatusCode();
+    }
+
+    // Current quantity of an item at a location. 0 if no stock row exists yet.
+    public static async Task<int> GetQuantityAsync(HttpClient client, int itemId, int locationId)
+    {
+        var response = await client.GetAsync($"/api/Stock-Levels/Item/{itemId}/Location/{locationId}");
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return json.RootElement.GetArrayLength() == 0
+            ? 0
+            : json.RootElement[0].GetProperty("quantity").GetInt32();
     }
 }
