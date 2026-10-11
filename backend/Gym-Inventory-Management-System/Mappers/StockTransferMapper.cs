@@ -17,7 +17,7 @@ namespace Gym_Inventory_Management_System.Mappers;
         );
     }
 
-    public static StockTransfer ToEntity(this StockTransferCreateDTO dto)
+    public static StockTransfer ToEntity(this StockTransferCreateDTO dto, int userId)
     {
         return new StockTransfer
         {
@@ -26,7 +26,7 @@ namespace Gym_Inventory_Management_System.Mappers;
             ToLocationId = dto.ToLocationId,
             Quantity = dto.Quantity,
             TransferDate = dto.TransferDate,
-            UserId = dto.UserId
+            UserId = userId
         };
     }
 }

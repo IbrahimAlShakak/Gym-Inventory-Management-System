@@ -14,7 +14,6 @@ public record StockMovementCreateDTO
         int Quantity,
         MovementType Type,
         DateOnly MovementDate,
-        int UserId,
         [MinLength(6, ErrorMessage = "Notes must be at least 6 characters long.")]
         string Notes
     );

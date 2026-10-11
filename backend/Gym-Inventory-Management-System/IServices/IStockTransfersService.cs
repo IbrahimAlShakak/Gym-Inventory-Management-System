@@ -8,5 +8,5 @@ public interface IStockTransfersService
     public Task<StockTransferResponseDTO> GetStockTransferByIdAsync(int id);
     public Task<List<StockTransferResponseDTO>> GetAllStockTransfersForItemAsync(int itemId);
     public Task<List<StockTransferResponseDTO>> GetAllStockTransfersForLocationsAsync(int FromLocationId, int ToLocationId);
-    public Task<StockTransferResponseDTO> CreateStockTransferAsync(StockTransferCreateDTO stockTransferRequestDTO);
+    public Task<StockTransferResponseDTO> CreateStockTransferAsync(StockTransferCreateDTO stockTransferRequestDTO, int userId);
 }

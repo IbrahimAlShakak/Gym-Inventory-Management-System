@@ -10,9 +10,9 @@ public static class StockMovementMapper
         (entity.Id, entity.ItemId, entity.LocationId, entity.Quantity, entity.Type,
             entity.MovementDate, entity.UserId, entity.Notes);
 
-    public static StockMovement ToEntity(StockMovementCreateDTO dto) =>
+    public static StockMovement ToEntity(StockMovementCreateDTO dto, int userId) =>
         new StockMovement 
         { ItemId = dto.ItemId, LocationId = dto.LocationId, Quantity = dto.Quantity, Type = dto.Type,
-            MovementDate = dto.MovementDate, UserId = dto.UserId, Notes = dto.Notes };
+            MovementDate = dto.MovementDate, UserId = userId, Notes = dto.Notes };
 }
 

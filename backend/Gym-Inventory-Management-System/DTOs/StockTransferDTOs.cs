@@ -11,6 +11,5 @@ public record StockTransferCreateDTO
     int FromLocationId,
     int ToLocationId, 
     [Range(1, int.MaxValue, ErrorMessage = "Quantity must be a positive integer.")] int Quantity,
-    DateTime TransferDate,
-    int UserId
+    DateTime TransferDate
     );

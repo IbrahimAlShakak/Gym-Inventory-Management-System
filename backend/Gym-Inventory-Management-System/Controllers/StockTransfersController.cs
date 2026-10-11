@@ -1,4 +1,5 @@
 ﻿using Gym_Inventory_Management_System.DTOs;
+using Gym_Inventory_Management_System.Helpers;
 using Gym_Inventory_Management_System.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -54,7 +55,7 @@ public class StockTransfersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<StockTransferResponseDTO>> CreateStockTransfer([FromBody] StockTransferCreateDTO stockTransferRequestDTO)
     {
-        var stockTransfer = await _stockTransferService.CreateStockTransferAsync(stockTransferRequestDTO);
+        var stockTransfer = await _stockTransferService.CreateStockTransferAsync(stockTransferRequestDTO, User.GetUserId());
         return CreatedAtRoute("GetStockTransferById", new { id = stockTransfer.Id }, stockTransfer);
     }
 }

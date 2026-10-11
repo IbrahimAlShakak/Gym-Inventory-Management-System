@@ -36,12 +36,12 @@ public class StockMovementsService : IStockMovementsService
         }
         return StockMovementMapper.ToDto(stockMovement);
     }
-    public async Task<StockMovementResponseDTO> CreateStockMovementAsync(StockMovementCreateDTO dto)
+    public async Task<StockMovementResponseDTO> CreateStockMovementAsync(StockMovementCreateDTO dto, int userId)
     {
-        var isUserExists = await _context.Users.AnyAsync(u => u.Id == dto.UserId);
+        var isUserExists = await _context.Users.AnyAsync(u => u.Id == userId);
         if (!isUserExists)
         {
-            throw new NotFoundException($"User not found with the specified ID = {dto.UserId}");
+            throw new NotFoundException($"User not found with the specified ID = {userId}");
         }
 
         var stockLevel = await _stockLevelHelperService.GetOrCreateStockLevelAsync(dto.ItemId, dto.LocationId);
@@ -63,7 +63,7 @@ public class StockMovementsService : IStockMovementsService
         }
 
         stockLevel.Quantity = newQuantity;
-        var stockMovement = StockMovementMapper.ToEntity(dto);
+        var stockMovement = StockMovementMapper.ToEntity(dto, userId);
         _context.StockMovements.Add(stockMovement);
         await _context.SaveChangesAsync();
 

@@ -80,17 +80,17 @@ public class StockTransfersService : IStockTransfersService
         return stockTransfers.Select(st => StockTransferMapper.ToDTO(st)).ToList();
     }
 
-    public async Task<StockTransferResponseDTO> CreateStockTransferAsync(StockTransferCreateDTO dto)
+    public async Task<StockTransferResponseDTO> CreateStockTransferAsync(StockTransferCreateDTO dto, int userId)
     {
         if (dto.FromLocationId == dto.ToLocationId)
         {
             throw new InvalidOperationBusinessException("Source and destination locations cannot be the same.");
         }
 
-        var isUserExists = await _context.Users.AnyAsync(u => u.Id == dto.UserId);
+        var isUserExists = await _context.Users.AnyAsync(u => u.Id == userId);
         if (!isUserExists)
         {
-            throw new NotFoundException($"User not found with the specified ID = {dto.UserId}");
+            throw new NotFoundException($"User not found with the specified ID = {userId}");
         }
 
         var fromStockLevel = await _stockLevelHelperService.GetOrCreateStockLevelAsync(dto.ItemId, dto.FromLocationId);
@@ -104,7 +104,7 @@ public class StockTransfersService : IStockTransfersService
 
         fromStockLevel.Quantity -= dto.Quantity;
         toStockLevel.Quantity += dto.Quantity;
-        var stockTransfer = StockTransferMapper.ToEntity(dto);
+        var stockTransfer = StockTransferMapper.ToEntity(dto, userId);
         _context.StockTransfers.Add(stockTransfer);
         await _context.SaveChangesAsync();
         return StockTransferMapper.ToDTO(stockTransfer);

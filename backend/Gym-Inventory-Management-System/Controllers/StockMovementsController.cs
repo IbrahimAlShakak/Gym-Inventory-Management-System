@@ -1,4 +1,5 @@
 ﻿using Gym_Inventory_Management_System.DTOs;
+using Gym_Inventory_Management_System.Helpers;
 using Gym_Inventory_Management_System.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,7 +38,7 @@ public class StockMovementsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<StockMovementResponseDTO>> CreateStockMovementAsync(StockMovementCreateDTO dto)
     {
-        var stockMovement = await _stockMovementService.CreateStockMovementAsync(dto);
+        var stockMovement = await _stockMovementService.CreateStockMovementAsync(dto, User.GetUserId());
         return CreatedAtAction("GetStockMovementById", new { id = stockMovement.Id }, stockMovement);
     }
 
