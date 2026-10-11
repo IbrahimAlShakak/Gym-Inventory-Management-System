@@ -17,6 +17,9 @@ public class GymApiFactory : WebApplicationFactory<Program>
 
         // Tests must not depend on your personal User Secrets.
         builder.UseSetting("Jwt:Key", "db13434e1523f52612335b48d085b7ae3c7ea248c70ab3cfe7f9e0cd3fb0f09f");
+        builder.UseSetting("Jwt:Issuer", "test-issuer");
+        builder.UseSetting("Jwt:Audience", "test-audience");
+        builder.UseSetting("Jwt:ExpiryHours", "1");
 
         builder.ConfigureTestServices(services =>
         {
