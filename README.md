@@ -4,6 +4,12 @@
 
 A backend-focused inventory and warehouse management system for a gym: it tracks equipment and consumables across multiple locations, records every stock change as history, and restricts who can do what through role-based authorization.
 
+## API Preview
+
+![Swagger UI showing the API's endpoint groups](docs/images/swagger-overview.png)
+
+*Interactive API documentation (Swagger UI) with JWT Bearer authorization.*
+
 ## Tech Stack
 
 - **Backend:** C# / ASP.NET Core Web API (.NET 10)
